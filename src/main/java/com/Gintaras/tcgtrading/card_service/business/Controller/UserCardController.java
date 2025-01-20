@@ -1,10 +1,7 @@
 package com.Gintaras.tcgtrading.card_service.business.Controller;
 
-import com.Gintaras.tcgtrading.card_service.business.service.CardRarityService;
-import com.Gintaras.tcgtrading.card_service.business.service.CardService;
 import com.Gintaras.tcgtrading.card_service.business.service.UserCardService;
 import com.Gintaras.tcgtrading.card_service.business.swagger.HTMLResponseMessages;
-import com.Gintaras.tcgtrading.card_service.model.Card;
 import com.Gintaras.tcgtrading.card_service.model.UserCard;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -29,137 +26,172 @@ import java.util.Optional;
 public class UserCardController {
 
     @Autowired
-    UserCardService userCardService;
-
-    @Autowired
-    CardService cardService;
+    private UserCardService userCardService;
 
     @PostMapping
-    @ApiOperation(value = "Saves User Card to database",
-            notes = "If valid User Card body is provided it is saved in the database",
-            response = UserCard.class)
+    @ApiOperation(value = "Saves User Card to database", notes = "If valid User Card body is provided it is saved in the database", response = UserCard.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
             @ApiResponse(code = 400, message = HTMLResponseMessages.HTTP_400),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     @ResponseStatus(HttpStatus.ACCEPTED)
-    ResponseEntity<?> saveUserCard(@ApiParam(value = "User Card model that we want to save", required = true)
-                               @Valid @RequestBody UserCard userCard, BindingResult bindingResult) {
+    public ResponseEntity<?> saveUserCard(@ApiParam(value = "User Card model that we want to save", required = true) @Valid @RequestBody UserCard userCard, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             log.warn(HTMLResponseMessages.HTTP_400);
             return ResponseEntity.badRequest().body(HTMLResponseMessages.HTTP_400);
         }
-        if(cardService.getCardById(userCard.getCardId()).isEmpty()){
-            log.info("Card  with id {} does not exist", userCard.getCardId());
-            return ResponseEntity.notFound().build();
-        }
-        UserCard savedUserCard = userCardService.saveUserCard(userCard);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedUserCard);
 
+        ResponseEntity<UserCard> response = userCardService.saveUserCard(userCard);
+        if (response.getStatusCode().is4xxClientError()) {
+            log.warn("User Card with id {} could not be saved", userCard.getId());
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        }
+
+        log.info("UserCard saved successfully: {}", userCard);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response.getBody());
     }
 
     @PutMapping("/{id}")
-    @ApiOperation(value = "Updates User Card in the database",
-            notes = "If valid User Card body is provided it is saved in the database",
-            response = UserCard.class)
+    @ApiOperation(value = "Updates User Card in the database", notes = "If valid User Card body is provided it is saved in the database", response = UserCard.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
             @ApiResponse(code = 400, message = HTMLResponseMessages.HTTP_400),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public ResponseEntity<?> updateUserCard(@ApiParam(value = "The updating User Card model", required = true)
-                                        @Valid @RequestBody UserCard userCard,
-                                        @ApiParam(value = "The id of the User Card", required = true)
-                                        @PathVariable String id, BindingResult bindingResult){
+    public ResponseEntity<?> updateUserCard(@ApiParam(value = "The updating User Card model", required = true) @Valid @RequestBody UserCard userCard,
+                                            @ApiParam(value = "The id of the User Card", required = true) @PathVariable String id, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             log.warn(HTMLResponseMessages.HTTP_400);
             return ResponseEntity.badRequest().body(HTMLResponseMessages.HTTP_400);
         }
+
         if (!Objects.equals(userCard.getId(), id)) {
             log.warn("Provided User Card  ids are not equal: {}!={}", id, userCard.getId());
-            return ResponseEntity.badRequest().body("Unsuccessful request responds with this code." +
-                    "Passed data has errors - provided Card ids are not equal.");
-        }
-        if(cardService.getCardById(userCard.getCardId()).isEmpty()){
-            log.info("Card with id {} does not exist", userCard.getCardId());
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().body("Provided Card ids are not equal.");
         }
 
-        Optional<UserCard> userCardById = userCardService.getUserCardById(id);
-        if (userCardById.isEmpty()) {
-            log.info("User Card with id {} does not exist", id);
-            return ResponseEntity.notFound().build();
+        ResponseEntity<UserCard> response = userCardService.saveUserCard(userCard);
+        if (response.getStatusCode().is4xxClientError()) {
+            log.warn("User Card with id {} could not be updated", id);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
         }
-        UserCard updatedUserCard = userCardService.saveUserCard(userCard);
-        log.info("UserCard with id {} is updated: {}", id, updatedUserCard);
-        return ResponseEntity.status(HttpStatus.OK).body(updatedUserCard);
+
+        log.info("UserCard updated successfully: {}", response.getBody());
+        return ResponseEntity.status(HttpStatus.OK).body(response.getBody());
     }
 
     @DeleteMapping("/{id}")
-    @ApiOperation(value = "Deletes UserCard in database",
-            notes = "If UserCard exists with provided Id then it is deleted from the database",
-            response = UserCard.class)
+    @ApiOperation(value = "Deletes UserCard in database", notes = "If UserCard exists with provided Id then it is deleted from the database", response = UserCard.class)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = HTMLResponseMessages.HTTP_204_WITH_DATA),
-            @ApiResponse(code = 401, message = "The request requires user authentication"),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    ResponseEntity<?> deleteUserCardById(@ApiParam(value = "The id of the User Card", required = true)
-                                     @PathVariable @NonNull String id) {
-        Optional<UserCard> userCardByiD = userCardService.getUserCardById(id);
-        if (userCardByiD.isEmpty()) {
-            log.warn("UserCard with id {} is not found.", id);
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> deleteUserCardById(@ApiParam(value = "The id of the User Card", required = true) @PathVariable @NonNull String id) {
+        ResponseEntity<Void> response = userCardService.deleteUserCardById(id);
+        if (response.getStatusCode().is4xxClientError()) {
+            log.warn("UserCard with id {} could not be deleted", id);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
         }
-        userCardService.deleteUserCardById(id);
-        log.info("UserCard with id {} is deleted: {}", id, userCardByiD);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
+        log.info("UserCard with id {} has been deleted", id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-    @ApiOperation(
-            value = "Get User Card object from database by Id",
-            response = UserCard.class)
+    @GetMapping("/{id}")
+    @ApiOperation(value = "Get User Card object from database by Id", response = UserCard.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
-            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)
-    })
-    @ResponseStatus(value = HttpStatus.OK)
-    @GetMapping(produces = "application/json", path = "/{id}")
-    public ResponseEntity<?> getUserCardById(@ApiParam(value = "The id of the User Card", required = true)
-                                         @PathVariable String id) {
-        Optional<UserCard> userCardById = userCardService.getUserCardById(id);
-        if (userCardById.isEmpty()) {
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
+    public ResponseEntity<?> getUserCardById(@ApiParam(value = "The id of the User Card", required = true) @PathVariable String id) {
+        ResponseEntity<UserCard> response = userCardService.getUserCardById(id);
+        if (response.getStatusCode().is4xxClientError()) {
             log.info("User Card with id {} does not exist", id);
-            return ResponseEntity.notFound().build();
-        } else {
-            log.info("User Card with id {} is found: {}", id, userCardById);
-            return ResponseEntity.ok(userCardById);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
         }
+
+        log.info("User Card with id {} is found: {}", id, response.getBody());
+        return ResponseEntity.ok(response.getBody());
     }
 
-    @ApiOperation(
-            value = "Get a list of all Users'es  Cards",
-            response = UserCard.class)
+    @GetMapping
+    @ApiOperation(value = "Get a list of all Users'es Cards", response = UserCard.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
-            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)
-    })
-    @ResponseStatus(value = HttpStatus.OK)
-    @GetMapping(produces = "application/json")
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     public ResponseEntity<List<UserCard>> getAllUserCards() {
-        List<UserCard> foundUserCards = userCardService.getUserCardList();
-        if (foundUserCards.isEmpty()) {
-            log.warn("User Card list is empty: {}", foundUserCards);
-            return ResponseEntity.notFound().build();
-        } else {
-            log.info("User Card list is: {}", foundUserCards::size);
-            return new ResponseEntity<>(foundUserCards, HttpStatus.OK);
+        ResponseEntity<List<UserCard>> response = userCardService.getUserCardList();
+        if (response.getStatusCode().is4xxClientError()) {
+            log.warn("User Card list is empty");
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
         }
+
+        log.info("User Card list is fetched successfully: {}", response.getBody().size());
+        return ResponseEntity.ok(response.getBody());
+    }
+
+    @GetMapping("/value/{id}")
+    @ApiOperation(value = "Get User card value by Id", response = Double.class)
+    public ResponseEntity<?> getUserCardValue(@ApiParam(value = "The id of the User Card", required = true) @PathVariable String id) {
+        ResponseEntity<Double> response = userCardService.getCardValueById(id);
+        return ResponseEntity.ok(response.getBody());
+    }
+
+    @GetMapping("/amount/{id}")
+    @ApiOperation(value = "Get User card amount by Id", response = Integer.class)
+    public ResponseEntity<?> getUserCardAmount(@ApiParam(value = "The id of the User Card", required = true) @PathVariable String id) {
+        ResponseEntity<Integer> response = userCardService.getCardAmountById(id);
+        return ResponseEntity.ok(response.getBody());
+    }
+
+    @PutMapping("/amount/{id}")
+    @ApiOperation(value = "Updates User Card amount in the database",
+            notes = "If User Card with provided Id is valid, the amount will be updated",
+            response = UserCard.class)
+    public ResponseEntity<?> updateUserCardAmount(@ApiParam(value = "The id of the User Card", required = true) @PathVariable String id,
+                                                  @ApiParam(value = "Amount of cards", required = true) @RequestBody Integer amount) {
+        if (amount < 0) {
+            log.warn("Invalid amount: {} for User Card with id {}", amount, id);
+            return ResponseEntity.badRequest().body(HTMLResponseMessages.HTTP_400);
+        }
+
+        ResponseEntity<UserCard> userCardResponse = userCardService.getUserCardById(id);
+        if (!userCardResponse.getStatusCode().is2xxSuccessful()) {
+            log.warn("User Card with id {} not found", id);
+            return ResponseEntity.status(userCardResponse.getStatusCode()).body(userCardResponse.getBody());
+        }
+
+        UserCard userCard = userCardResponse.getBody();
+        if (userCard == null) {
+            log.warn("User Card with id {} not found", id);
+            return ResponseEntity.notFound().build();
+        }
+
+        userCard.setAmount(amount);
+
+        ResponseEntity<UserCard> response = userCardService.saveUserCard(userCard);
+        if (response.getStatusCode().is4xxClientError()) {
+            log.warn("Failed to update the amount for User Card with id {}", id);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        }
+
+        log.info("Successfully updated the amount for User Card with id {}: {}", id, response.getBody());
+        return ResponseEntity.ok(response.getBody());
+    }
+
+    @GetMapping("/unique/{userId}/{cardId}")
+    @ApiOperation(value = "Check if user card with specific User Id and cardId exists", response = String.class)
+    public ResponseEntity<?> checkIfCardExist(@ApiParam(value = "The id of User that owns the card", required = true) @PathVariable String userId,
+                                              @ApiParam(value = "The id of the card", required = true) @PathVariable String cardId) {
+        ResponseEntity<String> response = userCardService.getUserCardByUserIdAndCardId(userId, cardId);
+        if (response.getStatusCode().is4xxClientError()) {
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        }
+
+        return ResponseEntity.ok(response.getBody());
     }
 }

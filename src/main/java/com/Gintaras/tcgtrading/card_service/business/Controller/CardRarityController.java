@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @RestController
 @Log4j2
@@ -37,59 +36,34 @@ public class CardRarityController {
             @ApiResponse(code = 400, message = HTMLResponseMessages.HTTP_400),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    ResponseEntity<?> saveCardRarity(@ApiParam(value = "Card Rarity model that we want to save", required = true)
-                                     @Valid @RequestBody CardRarity cardRarity, BindingResult bindingResult) {
+    public ResponseEntity<CardRarity> saveCardRarity(@ApiParam(value = "Card Rarity model that we want to save", required = true)
+                                                     @Valid @RequestBody CardRarity cardRarity, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             log.warn(HTMLResponseMessages.HTTP_400);
-            return ResponseEntity.badRequest().body(HTMLResponseMessages.HTTP_400);
+            return ResponseEntity.badRequest().body(null);
         }
-        CardRarity savedCardRarity = cardRarityService.saveCardRarity(cardRarity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedCardRarity);
-
+        return cardRarityService.saveCardRarity(cardRarity);
     }
 
-    @ApiOperation(
-            value = "Get Card rarity object from database by Id",
-            response = CardRarity.class)
+    @ApiOperation(value = "Get Card rarity object from database by Id", response = CardRarity.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
-            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)
-    })
-    @ResponseStatus(value = HttpStatus.OK)
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     @GetMapping(produces = "application/json", path = "/{id}")
-    public ResponseEntity<?> getCardRarityById(@ApiParam(value = "The id of the Card rarity", required = true)
-                                         @PathVariable String id) {
-        Optional<CardRarity> cardRarityById = cardRarityService.getCardRarityById(id);
-        if (cardRarityById.isEmpty()) {
-            log.info("Card Rarity with id {} does not exist", id);
-            return ResponseEntity.notFound().build();
-        } else {
-            log.info("Card rarity with id {} is found: {}", id, cardRarityById);
-            return ResponseEntity.ok(cardRarityById);
-        }
+    public ResponseEntity<CardRarity> getCardRarityById(@ApiParam(value = "The id of the Card rarity", required = true)
+                                                        @PathVariable String id) {
+        return cardRarityService.getCardRarityById(id); // Now directly returns the ResponseEntity from the service
     }
 
-    @ApiOperation(
-            value = "Get a list of all Card Rarities",
-            response = CardRarity.class)
+    @ApiOperation(value = "Get a list of all Card Rarities", response = CardRarity.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
-            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)
-    })
-    @ResponseStatus(value = HttpStatus.OK)
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     @GetMapping(produces = "application/json")
     public ResponseEntity<List<CardRarity>> getAllCardRarities() {
-        List<CardRarity> foundCardRarities = cardRarityService.getCardRarityList();
-        if (foundCardRarities.isEmpty()) {
-            log.warn("Card Rarities list is empty: {}", foundCardRarities);
-            return ResponseEntity.notFound().build();
-        } else {
-            log.info("Card rarities list is: {}", foundCardRarities::size);
-            return new ResponseEntity<>(foundCardRarities, HttpStatus.OK);
-        }
+        return cardRarityService.getCardRarityList(); // Return ResponseEntity from service
     }
 
     @DeleteMapping("/{id}")
@@ -101,18 +75,10 @@ public class CardRarityController {
             @ApiResponse(code = 401, message = "The request requires user authentication"),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    ResponseEntity<?> deleteCardRarityById(@ApiParam(value = "The id of the Card Rarity", required = true)
-                                           @PathVariable @NonNull String id) {
-        Optional<CardRarity> cardRarityById = cardRarityService.getCardRarityById(id);
-        if (cardRarityById.isEmpty()) {
-            log.warn("Card rarity with id {} is not found.", id);
-            return ResponseEntity.notFound().build();
-        }
-        cardRarityService.deleteCardRarityById(id);
-        log.info("Card Rarity with id {} is deleted: {}", id, cardRarityById);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-
+    public ResponseEntity<Void> deleteCardRarityById(@ApiParam(value = "The id of the Card Rarity", required = true)
+                                                     @PathVariable @NonNull String id) {
+        // Directly return the ResponseEntity returned from the service
+        return cardRarityService.deleteCardRarityById(id);
     }
 
     @PutMapping("/{id}")
@@ -124,27 +90,34 @@ public class CardRarityController {
             @ApiResponse(code = 400, message = HTMLResponseMessages.HTTP_400),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    ResponseEntity<?> updateCardRarity(@ApiParam(value = "The id of the Card Rarity", required = true)
-                                 @PathVariable @NonNull String id,
-                                 @ApiParam(value = "The updating Card Rarity model", required = true)
-                                 @Valid @RequestBody CardRarity cardRarity, BindingResult bindingResult) {
+    public ResponseEntity<CardRarity> updateCardRarity(@ApiParam(value = "The id of the Card Rarity", required = true)
+                                                       @PathVariable @NonNull String id,
+                                                       @ApiParam(value = "The updating Card Rarity model", required = true)
+                                                       @Valid @RequestBody CardRarity cardRarity, BindingResult bindingResult) {
+        // Validate the input
         if (bindingResult.hasErrors()) {
             log.warn(HTMLResponseMessages.HTTP_400);
-            return ResponseEntity.badRequest().body(HTMLResponseMessages.HTTP_400);
+            return ResponseEntity.badRequest().body(null);
         }
+
+        // Ensure the provided id in the body matches the path parameter
         if (!Objects.equals(cardRarity.getId(), id)) {
             log.warn("Provided Card Rarity ids are not equal: {}!={}", id, cardRarity.getId());
-            return ResponseEntity.badRequest().body("Unsuccessful request responds with this code." +
-                    "Passed data has errors - provided Card Rarity ids are not equal.");
+            return ResponseEntity.badRequest().body(null);
         }
-        Optional<CardRarity> cardRarityById = cardRarityService.getCardRarityById(id);
-        if (cardRarityById.isEmpty()) {
+
+        // Call the service method to get the CardRarity by ID
+        ResponseEntity<CardRarity> existingCardRarityResponse = cardRarityService.getCardRarityById(id);
+
+        // Check if the CardRarity exists
+        if (existingCardRarityResponse.getStatusCode().is2xxSuccessful()) {
+            // CardRarity exists, update it
+            return cardRarityService.saveCardRarity(cardRarity);
+        } else {
+            // CardRarity not found
             log.info("Card Rarity with id {} does not exist", id);
             return ResponseEntity.notFound().build();
         }
-        CardRarity updatedCardRarity = cardRarityService.saveCardRarity(cardRarity);
-        log.info("Card Rarity with id {} is updated: {}", id, updatedCardRarity);
-        return ResponseEntity.status(HttpStatus.OK).body(updatedCardRarity);
     }
+
 }

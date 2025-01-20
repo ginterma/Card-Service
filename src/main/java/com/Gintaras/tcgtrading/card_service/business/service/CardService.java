@@ -1,17 +1,17 @@
 package com.Gintaras.tcgtrading.card_service.business.service;
 
 import com.Gintaras.tcgtrading.card_service.model.Card;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface CardService {
 
-    public Card saveCard(Card card);
+    ResponseEntity<Card> saveCard(Card card);
 
-    public void deleteCardById(String id);
+    ResponseEntity<Void> deleteCardById(String id);
 
-    public Optional<Card> getCardById(String id);
+    ResponseEntity<Card> getCardById(String id);
 
-    public List<Card> getCardList();
+    ResponseEntity<List<Card>> getCardList();
 }
