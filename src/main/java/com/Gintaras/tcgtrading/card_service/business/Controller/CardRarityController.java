@@ -53,7 +53,7 @@ public class CardRarityController {
     @GetMapping(produces = "application/json", path = "/{id}")
     public ResponseEntity<CardRarity> getCardRarityById(@ApiParam(value = "The id of the Card rarity", required = true)
                                                         @PathVariable String id) {
-        return cardRarityService.getCardRarityById(id); // Now directly returns the ResponseEntity from the service
+        return cardRarityService.getCardRarityById(id);
     }
 
     @ApiOperation(value = "Get a list of all Card Rarities", response = CardRarity.class)
@@ -63,7 +63,7 @@ public class CardRarityController {
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     @GetMapping(produces = "application/json")
     public ResponseEntity<List<CardRarity>> getAllCardRarities() {
-        return cardRarityService.getCardRarityList(); // Return ResponseEntity from service
+        return cardRarityService.getCardRarityList();
     }
 
     @DeleteMapping("/{id}")
@@ -77,7 +77,6 @@ public class CardRarityController {
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     public ResponseEntity<Void> deleteCardRarityById(@ApiParam(value = "The id of the Card Rarity", required = true)
                                                      @PathVariable @NonNull String id) {
-        // Directly return the ResponseEntity returned from the service
         return cardRarityService.deleteCardRarityById(id);
     }
 
@@ -94,27 +93,21 @@ public class CardRarityController {
                                                        @PathVariable @NonNull String id,
                                                        @ApiParam(value = "The updating Card Rarity model", required = true)
                                                        @Valid @RequestBody CardRarity cardRarity, BindingResult bindingResult) {
-        // Validate the input
         if (bindingResult.hasErrors()) {
             log.warn(HTMLResponseMessages.HTTP_400);
             return ResponseEntity.badRequest().body(null);
         }
 
-        // Ensure the provided id in the body matches the path parameter
         if (!Objects.equals(cardRarity.getId(), id)) {
             log.warn("Provided Card Rarity ids are not equal: {}!={}", id, cardRarity.getId());
             return ResponseEntity.badRequest().body(null);
         }
 
-        // Call the service method to get the CardRarity by ID
         ResponseEntity<CardRarity> existingCardRarityResponse = cardRarityService.getCardRarityById(id);
 
-        // Check if the CardRarity exists
         if (existingCardRarityResponse.getStatusCode().is2xxSuccessful()) {
-            // CardRarity exists, update it
             return cardRarityService.saveCardRarity(cardRarity);
         } else {
-            // CardRarity not found
             log.info("Card Rarity with id {} does not exist", id);
             return ResponseEntity.notFound().build();
         }

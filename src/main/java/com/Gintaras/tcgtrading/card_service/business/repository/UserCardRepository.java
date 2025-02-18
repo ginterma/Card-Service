@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface UserCardRepository extends MongoRepository <UserCardDAO, String> {
 
-        List<UserCardDAO> findByUserIdAndCardDAO_Id(String userId, String cardId);
+        List<UserCardDAO> findByUserIdAndCardDAOId(String userId, String cardId);
 }

@@ -6,13 +6,12 @@ import com.Gintaras.tcgtrading.card_service.business.repository.DAO.CardDAO;
 import com.Gintaras.tcgtrading.card_service.business.repository.DAO.UserCardDAO;
 import com.Gintaras.tcgtrading.card_service.business.repository.UserCardRepository;
 import com.Gintaras.tcgtrading.card_service.business.service.UserCardService;
-import com.Gintaras.tcgtrading.card_service.model.Card;
 import com.Gintaras.tcgtrading.card_service.model.UserCard;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,21 +21,19 @@ import java.util.stream.Collectors;
 @Log4j2
 public class UserCardServiceImpl implements UserCardService {
 
-    @Autowired
-    private UserCardRepository userCardRepository;
+    private final UserCardRepository userCardRepository;
+    private final UserCardMapStruct userCardMapper;
+    private final CardRepository cardRepository;
+    private final WebClient webUserClient;
 
-    @Autowired
-    private UserCardMapStruct userCardMapper;
-
-    @Autowired
-    private CardRepository cardRepository;
-
-    private final RestClient restClient;
-
-    public UserCardServiceImpl() {
-        this.restClient = RestClient.builder()
-                .baseUrl("http://localhost:9098/api/v1/user").build();
+    public UserCardServiceImpl(UserCardRepository userCardRepository, UserCardMapStruct userCardMapper,
+                               CardRepository cardRepository, @Qualifier("user") WebClient webUserClient) {
+        this.userCardRepository = userCardRepository;
+        this.userCardMapper = userCardMapper;
+        this.cardRepository = cardRepository;
+        this.webUserClient = webUserClient;
     }
+
 
     @Override
     public ResponseEntity<UserCard> saveUserCard(UserCard userCard) {
@@ -45,10 +42,10 @@ public class UserCardServiceImpl implements UserCardService {
             return ResponseEntity.badRequest().build();
         }
 
-        Optional<?> user = restClient.get().uri("/{id}", userCard.getUserId())
-                .retrieve().body(Optional.class);
+        ResponseEntity<Void> userResponse = webUserClient.get().uri("/{id}", userCard.getUserId())
+                .retrieve().toBodilessEntity().block();
 
-        if (user.isEmpty()) {
+        if (!userResponse.getStatusCode().is2xxSuccessful()) {
             log.warn("User with id {} does not exist", userCard.getUserId());
             return ResponseEntity.badRequest().build();
         }
@@ -57,7 +54,7 @@ public class UserCardServiceImpl implements UserCardService {
             return ResponseEntity.badRequest().build();
         }
 
-        List<UserCardDAO> userCards = userCardRepository.findByUserIdAndCardDAO_Id(userCard.getUserId(), userCard.getCardId());
+        List<UserCardDAO> userCards = userCardRepository.findByUserIdAndCardDAOId(userCard.getUserId(), userCard.getCardId());
         if (userCards.size() == 1) {
             userCard.setId(userCards.get(0).getId());
         }
@@ -119,10 +116,10 @@ public class UserCardServiceImpl implements UserCardService {
 
     @Override
     public ResponseEntity<String> getUserCardByUserIdAndCardId(String userId, String cardId) {
-        List<UserCardDAO> cardList = userCardRepository.findByUserIdAndCardDAO_Id(userId, cardId);
+        List<UserCardDAO> cardList = userCardRepository.findByUserIdAndCardDAOId(userId, cardId);
         if (cardList.isEmpty()) {
             return ResponseEntity.ok(null);
         }
-        return ResponseEntity.ok(cardList.get(0).getId());
+        return ResponseEntity.ok(cardList.getFirst().getId());
     }
 }

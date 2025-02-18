@@ -1,13 +1,13 @@
 package com.Gintaras.tcgtrading.card_service.business.service.impl;
 
 import com.Gintaras.tcgtrading.card_service.business.mapper.CardMapStruct;
+import com.Gintaras.tcgtrading.card_service.business.repository.CardRarityRepository;
 import com.Gintaras.tcgtrading.card_service.business.repository.CardRepository;
 import com.Gintaras.tcgtrading.card_service.business.repository.DAO.CardDAO;
 import com.Gintaras.tcgtrading.card_service.business.service.CardService;
 import com.Gintaras.tcgtrading.card_service.model.Card;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import lombok.extern.log4j.Log4j2;
 
@@ -19,15 +19,20 @@ import java.util.stream.Collectors;
 @Log4j2
 public class CardServiceImpl implements CardService {
 
-    @Autowired
-    private CardRepository cardRepository;
+    private final CardRepository cardRepository;
+    private final CardMapStruct cardMapper;
+    private final CardRarityRepository cardRarityRepository;
 
-    @Autowired
-    private CardMapStruct cardMapper;
+    public CardServiceImpl(CardRepository cardRepository, CardMapStruct cardMapper,
+                           CardRarityRepository cardRarityRepository) {
+        this.cardRepository = cardRepository;
+        this.cardMapper = cardMapper;
+        this.cardRarityRepository = cardRarityRepository;
+    }
 
     @Override
     public ResponseEntity<Card> saveCard(Card card) {
-        if (cardRepository.findById(card.getCardRarityId()).isEmpty()) {
+        if (cardRarityRepository.findById(card.getCardRarityId()).isEmpty()) {
             log.warn("Card rarity with id {} does not exist", card.getCardRarityId());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST); // Return 400 if rarity doesn't exist
         }
@@ -70,10 +75,6 @@ public class CardServiceImpl implements CardService {
 
         List<Card> cards = cardList.stream().map(cardMapper::CardDAOToCard).collect(Collectors.toList());
 
-        if (!cards.isEmpty()) {
-            return new ResponseEntity<>(cards, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
+        return new ResponseEntity<>(cards, HttpStatus.OK);
     }
 }

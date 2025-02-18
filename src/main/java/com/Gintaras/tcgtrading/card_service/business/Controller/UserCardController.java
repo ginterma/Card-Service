@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @RestController
 @Log4j2
@@ -110,12 +109,30 @@ public class UserCardController {
         ResponseEntity<UserCard> response = userCardService.getUserCardById(id);
         if (response.getStatusCode().is4xxClientError()) {
             log.info("User Card with id {} does not exist", id);
-            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+            return response;
         }
 
         log.info("User Card with id {} is found: {}", id, response.getBody());
         return ResponseEntity.ok(response.getBody());
     }
+
+    @GetMapping("card/{id}")
+    @ApiOperation(value = "Get Card Id of the provided User Card Id", response = UserCard.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
+            @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
+    public ResponseEntity<?> getCardIdByUserCardId(@ApiParam(value = "The id of the User Card", required = true) @PathVariable String id) {
+        ResponseEntity<UserCard> response = userCardService.getUserCardById(id);
+        if (response.getStatusCode().is4xxClientError()) {
+            log.info("User Card with id {} does not exist", id);
+            return response;
+        }
+
+        log.info("User Card with id {} is found: {}", id, response.getBody());
+        return ResponseEntity.ok(Objects.requireNonNull(response.getBody()).getCardId());
+    }
+
 
     @GetMapping
     @ApiOperation(value = "Get a list of all Users'es Cards", response = UserCard.class)
@@ -185,13 +202,8 @@ public class UserCardController {
 
     @GetMapping("/unique/{userId}/{cardId}")
     @ApiOperation(value = "Check if user card with specific User Id and cardId exists", response = String.class)
-    public ResponseEntity<?> checkIfCardExist(@ApiParam(value = "The id of User that owns the card", required = true) @PathVariable String userId,
+    public ResponseEntity<String> checkIfCardExist(@ApiParam(value = "The id of User that owns the card", required = true) @PathVariable String userId,
                                               @ApiParam(value = "The id of the card", required = true) @PathVariable String cardId) {
-        ResponseEntity<String> response = userCardService.getUserCardByUserIdAndCardId(userId, cardId);
-        if (response.getStatusCode().is4xxClientError()) {
-            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
-        }
-
-        return ResponseEntity.ok(response.getBody());
+        return  userCardService.getUserCardByUserIdAndCardId(userId, cardId);
     }
 }

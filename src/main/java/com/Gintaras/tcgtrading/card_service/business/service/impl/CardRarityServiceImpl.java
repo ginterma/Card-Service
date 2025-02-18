@@ -6,7 +6,6 @@ import com.Gintaras.tcgtrading.card_service.business.repository.DAO.CardRarityDA
 import com.Gintaras.tcgtrading.card_service.business.service.CardRarityService;
 import com.Gintaras.tcgtrading.card_service.model.CardRarity;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -20,11 +19,13 @@ import java.util.stream.Collectors;
 @Log4j2
 public class CardRarityServiceImpl implements CardRarityService {
 
-    @Autowired
-    CardRarityRepository cardRarityRepository;
+    private final CardRarityRepository cardRarityRepository;
+    private final CardRarityMapStruct cardRarityMapStruct;
 
-    @Autowired
-    CardRarityMapStruct cardRarityMapStruct;
+    public CardRarityServiceImpl(CardRarityRepository cardRarityRepository, CardRarityMapStruct cardRarityMapStruct) {
+        this.cardRarityRepository = cardRarityRepository;
+        this.cardRarityMapStruct = cardRarityMapStruct;
+    }
 
     @Override
     public ResponseEntity<CardRarity> saveCardRarity(CardRarity cardRarity) {
